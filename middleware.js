@@ -1,7 +1,7 @@
-const listing = require("./models/listings");
+const Listing = require("./models/listings"); 
 const Review = require("./models/reviews.js");
 const ExpressError = require("./utils/ExpressError.js");
-const {listingSchema, reviewSchema} = require("./schema.js"); 
+const { listingSchema, reviewSchema } = require("./schema.js"); 
 
 module.exports.isLoggedIn = (req, res, next)=>{
     if(!req.isAuthenticated()){
@@ -21,8 +21,14 @@ module.exports.saveRedirectUrl = (req, res, next)=>{
 
 module.exports.isOwner = async(req, res, next)=>{
     let { id } = req.params;
-    let listing = await Listing.findById(id);
-    if(!listing.owner.equals(res.locals.currUser._id)){
+    let foundListing = await Listing.findById(id);
+    
+    if(!foundListing){
+        req.flash("error", "The listing you are looking for does not exist.");
+        return res.redirect("/listings");
+    }
+
+    if(!foundListing.owner.equals(res.locals.currUser._id)){
         req.flash("error", "You are not the owner of the listing");
         return res.redirect(`/listings/${id}`);
     }
@@ -52,8 +58,14 @@ module.exports.validateReview = (req, res, next) => {
 module.exports.isAuthor = async(req, res, next)=>{
     let { id, reviewId } = req.params;
     let review = await Review.findById(reviewId);
+    
+    if(!review){
+        req.flash("error", "Review not found");
+        return res.redirect(`/listings/${id}`);
+    }
+
     if(!review.author.equals(res.locals.currUser._id)){
-        req.flash("error", "You are not the owner of the listing");
+        req.flash("error", "You are not the author of this review");
         return res.redirect(`/listings/${id}`);
     }
     next();
